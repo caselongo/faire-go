@@ -1,7 +1,6 @@
 package faire_go
 
 import (
-	"encoding/base64"
 	"fmt"
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
@@ -45,24 +44,20 @@ func (service *Service) getTokenRequest(r *http.Request) (*http.Request, *errort
 	code := r.FormValue("code")
 
 	data := url.Values{}
-	//data.Set(service.clientIdName, service.clientId)
-	//data.Set("client_secret", service.clientSecret)
-	data.Set("code", code)
-	data.Set("grant_type", "authorization_code")
-	if service.redirectUrl != nil {
-		data.Set("redirect_uri", *service.redirectUrl)
-	}
+	data.Set("application_token", service.clientId)
+	data.Set("application_secret", service.clientSecret)
+	data.Set("authorization_code", code)
+	data.Set("grant_type", "AUTHORIZATION_CODE")
+	data.Set("redirect_url", *service.redirectUrl)
+	data.Set("scope", *service.redirectUrl)
 
 	encoded := data.Encode()
 	body := strings.NewReader(encoded)
-
-	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", service.clientId, service.clientSecret)))
 
 	req, err := http.NewRequest(http.MethodPost, tokenUrl, body)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(encoded)))
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %s", auth))
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
@@ -149,7 +144,7 @@ func (service *Service) AuthorizeUrl(scope string, state string) string {
 	if service.redirectUrl == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s?applicationId=%s&redirect_uri=%s&state=%s&scope=%s", authUrl, service.clientId, *service.redirectUrl, state, scope)
+	return fmt.Sprintf("%s?applicationId=%s&redirectUrl=%s&state=%s&scope=%s", authUrl, service.clientId, *service.redirectUrl, state, scope)
 }
 
 func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
@@ -161,5 +156,6 @@ func (service *Service) url(path string) string {
 }
 
 func (service *Service) ErrorResponse() *ErrorResponse {
+
 	return service.errorResponse
 }
