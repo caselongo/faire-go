@@ -1,16 +1,15 @@
 package faire_go
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
 	oauth2 "github.com/leapforce-libraries/go_oauth2"
-	"github.com/leapforce-libraries/go_oauth2/tokensource"
+	"github.com/leapforce-libraries/go_oauth2/tokenfixed"
 	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -22,18 +21,30 @@ const (
 )
 
 type Service struct {
-	clientId      string
-	clientSecret  string
-	oAuth2Service *oauth2.Service
-	redirectUrl   *string
-	errorResponse *ErrorResponse
+	applicationId     string
+	applicationSecret string
+	appCredentials    string
+	accessToken       string
+	oAuth2Service     *oauth2.Service
+	redirectUrl       *string
+	errorResponse     *ErrorResponse
 }
 
 type ServiceConfig struct {
-	ClientId     string
-	ClientSecret string
-	TokenSource  tokensource.TokenSource
-	RedirectUrl  *string
+	ApplicationId     string
+	ApplicationSecret string
+	AppCredentials    string
+	AccessToken       string
+	RedirectUrl       *string
+}
+
+type TokenRequest struct {
+	ApplicationToken  string   `json:"application_token"`
+	ApplicationSecret string   `json:"application_secret"`
+	RedirectUrl       string   `json:"redirect_url"`
+	Scope             []string `json:"scope"`
+	GrantType         string   `json:"grant_type"`
+	AuthorizationCode string   `json:"authorization_code"`
 }
 
 func (service *Service) getTokenRequest(r *http.Request) (*http.Request, *errortools.Error) {
@@ -41,26 +52,36 @@ func (service *Service) getTokenRequest(r *http.Request) (*http.Request, *errort
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
-	code := r.FormValue("code")
+	authorizationCode := r.FormValue("authorizationCode")
 
-	data := url.Values{}
-	data.Set("application_token", service.clientId)
-	data.Set("application_secret", service.clientSecret)
-	data.Set("authorization_code", code)
-	data.Set("grant_type", "AUTHORIZATION_CODE")
-	data.Set("redirect_url", *service.redirectUrl)
-	data.Set("scope", *service.redirectUrl)
+	reqBody := TokenRequest{
+		ApplicationToken:  service.applicationId,
+		ApplicationSecret: service.applicationSecret,
+		RedirectUrl:       *service.redirectUrl,
+		Scope: []string{
+			"READ_PRODUCTS",
+			"WRITE_PRODUCTS",
+			"READ_RETAILER",
+		},
+		GrantType:         "AUTHORIZATION_CODE",
+		AuthorizationCode: authorizationCode,
+	}
 
-	encoded := data.Encode()
-	body := strings.NewReader(encoded)
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		panic(err)
+	}
 
-	req, err := http.NewRequest(http.MethodPost, tokenUrl, body)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", strconv.Itoa(len(encoded)))
-	req.Header.Set("Accept", "application/json")
+	req, err := http.NewRequest(
+		http.MethodPost,
+		tokenUrl,
+		bytes.NewBuffer(body),
+	)
 	if err != nil {
 		return nil, errortools.ErrorMessage(err)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
 
 	return req, nil
 }
@@ -70,8 +91,8 @@ func NewService(cfg *ServiceConfig) (*Service, *errortools.Error) {
 		return nil, errortools.ErrorMessage("ServiceConfig must not be a nil pointer")
 	}
 
-	if cfg.ClientId == "" {
-		return nil, errortools.ErrorMessage("ClientId not provided")
+	if cfg.ApplicationId == "" {
+		return nil, errortools.ErrorMessage("ApplicationId not provided")
 	}
 
 	redirectUrl := defaultRedirectUrl
@@ -80,22 +101,29 @@ func NewService(cfg *ServiceConfig) (*Service, *errortools.Error) {
 	}
 
 	var service = Service{
-		clientId:     cfg.ClientId,
-		clientSecret: cfg.ClientSecret,
-		redirectUrl:  cfg.RedirectUrl,
+		applicationId:     cfg.ApplicationId,
+		applicationSecret: cfg.ApplicationSecret,
+		appCredentials:    cfg.AppCredentials,
+		accessToken:       cfg.AccessToken,
+		redirectUrl:       cfg.RedirectUrl,
 	}
 
-	//var getTokenRequestFunc = service.getTokenRequest
+	tokenSource, e := tokenfixed.NewTokenFixed(cfg.AccessToken)
+	if e != nil {
+		panic(e)
+	}
+
+	var getTokenRequestFunc = service.getTokenRequest
 
 	oauth2ServiceConfig := oauth2.ServiceConfig{
-		ClientId:        cfg.ClientId,
-		ClientSecret:    cfg.ClientSecret,
-		RedirectUrl:     redirectUrl,
-		AuthUrl:         authUrl,
-		TokenUrl:        tokenUrl,
-		TokenHttpMethod: tokenHttpMethod,
-		TokenSource:     cfg.TokenSource,
-		//GetTokenFromRequestFunc: &getTokenRequestFunc,
+		ClientId:                cfg.ApplicationId,
+		ClientSecret:            cfg.ApplicationSecret,
+		RedirectUrl:             redirectUrl,
+		AuthUrl:                 authUrl,
+		TokenUrl:                tokenUrl,
+		TokenHttpMethod:         tokenHttpMethod,
+		TokenSource:             tokenSource,
+		GetTokenFromRequestFunc: &getTokenRequestFunc,
 	}
 	oauth2Service, e := oauth2.NewService(&oauth2ServiceConfig)
 	if e != nil {
@@ -112,39 +140,31 @@ func (service *Service) httpRequest(requestConfig *go_http.RequestConfig) (*http
 	service.errorResponse = &ErrorResponse{}
 	requestConfig.ErrorModel = service.errorResponse
 
-	for {
-		request, response, e := service.oAuth2Service.HttpRequest(requestConfig)
-		if response != nil {
-			if response.StatusCode == http.StatusTooManyRequests {
-				reset := response.Header.Get("x-ratelimit-reset")
-				resetInt, err := strconv.ParseInt(reset, 10, 64)
-				if err == nil {
-					if resetInt < 60*60 {
-						time.Sleep(time.Duration(resetInt+1) + time.Second)
-						continue
-					}
-				}
+	// add authentication headers
+	header := http.Header{}
+	header.Set("X-FAIRE-APP-CREDENTIALS", service.appCredentials)
+	header.Set("X-FAIRE-OAUTH-ACCESS-TOKEN", service.accessToken)
+	(*requestConfig).NonDefaultHeaders = &header
+
+	req, res, e := service.oAuth2Service.HttpRequest(requestConfig)
+	if e != nil {
+
+		if service.errorResponse != nil {
+			b, err := json.Marshal(service.errorResponse)
+			if err == nil {
+				e.SetMessage(string(b))
 			}
 		}
-		if e != nil {
-			if service.errorResponse.Message != "" {
-				e.SetMessage(service.errorResponse.Message)
-			}
-		}
-
-		if e != nil {
-			return request, response, e
-		}
-
-		return request, response, nil
 	}
+
+	return req, res, e
 }
 
-func (service *Service) AuthorizeUrl(scope string, state string) string {
+func (service *Service) AuthorizeUrl(scopes []string, state string) string {
 	if service.redirectUrl == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s?applicationId=%s&redirectUrl=%s&state=%s&scope=%s", authUrl, service.clientId, *service.redirectUrl, state, scope)
+	return fmt.Sprintf("%s?applicationId=%s&redirectUrl=%s&state=%s&scope=%s", authUrl, service.applicationId, *service.redirectUrl, state, strings.Join(scopes, "&scope="))
 }
 
 func (service *Service) GetTokenFromCode(r *http.Request) *errortools.Error {
