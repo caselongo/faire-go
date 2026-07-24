@@ -8,6 +8,29 @@ import (
 	"time"
 )
 
+type SaleState string
+
+const (
+	SaleStateForSale    SaleState = "FOR_SALE"
+	SaleStateSalePaused SaleState = "SALE_PAUSED"
+)
+
+type LifecycleState string
+
+const (
+	LifecycleStateDraft       LifecycleState = "DRAFT"
+	LifecycleStatePublished   LifecycleState = "PUBLISHED"
+	LifecycleStateUnpublished LifecycleState = "UNPUBLISHED"
+	LifecycleStateDeleted     LifecycleState = "DELETED"
+)
+
+type OrderabilityType string
+
+const (
+	OrderabilityTypeImmediate OrderabilityType = "IMMEDIATE"
+	OrderabilityTypePreorder  OrderabilityType = "PREORDER"
+)
+
 type Product struct {
 	Id                           string                     `json:"id,omitempty"`
 	CreatedAt                    *time.Time                 `json:"created_at,omitempty"`
@@ -16,7 +39,7 @@ type Product struct {
 	Name                         string                     `json:"name,omitempty"`
 	Description                  string                     `json:"description,omitempty"`
 	ShortDescription             string                     `json:"short_description,omitempty"`
-	LifecycleState               string                     `json:"lifecycle_state,omitempty"`
+	LifecycleState               LifecycleState             `json:"lifecycle_state,omitempty"`
 	UnitMultiplier               *int                       `json:"unit_multiplier,omitempty"`
 	MinimumOrderQuantity         *int                       `json:"minimum_order_quantity,omitempty"`
 	PerStyleMinimumOrderQuantity *int                       `json:"per_style_minimum_order_quantity,omitempty"`
@@ -32,16 +55,16 @@ type Product struct {
 }
 
 type ProductVariant struct {
-	Id                string     `json:"id,omitempty"`
-	CreatedAt         *time.Time `json:"created_at,omitempty"`
-	UpdatedAt         *time.Time `json:"updated_at,omitempty"`
-	ProductId         string     `json:"product_id,omitempty"`
-	Name              string     `json:"name,omitempty"`
-	SaleState         string     `json:"sale_state,omitempty"`
-	LifecycleState    string     `json:"lifecycle_state,omitempty"`
-	Sku               string     `json:"sku,omitempty"`
-	AvailableQuantity *int       `json:"available_quantity,omitempty"`
-	TariffCode        string     `json:"tariff_code,omitempty"`
+	Id                string         `json:"id,omitempty"`
+	CreatedAt         *time.Time     `json:"created_at,omitempty"`
+	UpdatedAt         *time.Time     `json:"updated_at,omitempty"`
+	ProductId         string         `json:"product_id,omitempty"`
+	Name              string         `json:"name,omitempty"`
+	SaleState         SaleState      `json:"sale_state,omitempty"`
+	LifecycleState    LifecycleState `json:"lifecycle_state,omitempty"`
+	Sku               string         `json:"sku,omitempty"`
+	AvailableQuantity *int           `json:"available_quantity,omitempty"`
+	TariffCode        string         `json:"tariff_code,omitempty"`
 	Measurements      *struct {
 		MassUnit     string  `json:"mass_unit"`
 		Weight       float64 `json:"weight"`
@@ -50,8 +73,8 @@ type ProductVariant struct {
 		Width        float64 `json:"width"`
 		Height       float64 `json:"height"`
 	} `json:"measurements,omitempty"`
-	Gtin             string `json:"gtin,omitempty"`
-	OrderabilityType string `json:"orderability_type,omitempty"`
+	Gtin             string           `json:"gtin,omitempty"`
+	OrderabilityType OrderabilityType `json:"orderability_type,omitempty"`
 	CaseMeasurements *struct {
 		MassUnit     string  `json:"mass_unit"`
 		Weight       float64 `json:"weight"`
