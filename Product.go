@@ -5,6 +5,7 @@ import (
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -127,6 +128,77 @@ type ProductAttribute struct {
 type TaxonomyType struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type GetProductsResponse struct {
+	Products     []*Product `json:"products"`
+	Page         int        `json:"page"`
+	Limit        int        `json:"limit"`
+	UpdatedAtMin *time.Time `json:"updated_at_min"`
+	SortBy       string     `json:"sort_by"`
+	Cursor       string     `json:"cursor"`
+}
+
+type GetProductsOptions struct {
+	Cursor         string
+	IncludeDeleted string
+	Limit          *int
+	Page           *int
+	Sku            string
+	UpdatedAtMin   *time.Time
+}
+
+func (service *Service) GetProducts(options *GetProductsOptions) ([]*Product, *errortools.Error) {
+	var products []*Product
+
+	values := url.Values{}
+	if options != nil {
+		if options.Cursor != "" {
+			values.Add("cursor", options.Cursor)
+		}
+		if options.IncludeDeleted != "" {
+			values.Add("include_deleted", options.IncludeDeleted)
+		}
+		if options.Limit != nil {
+			values.Add("limit", fmt.Sprint(*options.Limit))
+		}
+		if options.Page != nil {
+			values.Add("page", fmt.Sprint(*options.Page))
+		}
+		if options.Sku != "" {
+			values.Add("sku", options.Sku)
+		}
+		if options.UpdatedAtMin != nil {
+			values.Add("updated_at_min", options.UpdatedAtMin.Format(time.RFC3339))
+		}
+	}
+
+	for {
+		var getProductsResponse GetProductsResponse
+
+		requestConfig := go_http.RequestConfig{
+			Method:        http.MethodGet,
+			Url:           service.url(fmt.Sprintf("/products?%s", values.Encode())),
+			ResponseModel: &getProductsResponse,
+		}
+
+		fmt.Println(requestConfig.FullUrl())
+
+		_, _, e := service.httpRequest(&requestConfig)
+		if e != nil {
+			//fmt.Println(*service.errorResponse)
+			return nil, e
+		}
+
+		if getProductsResponse.Products == nil || len(getProductsResponse.Products) == 0 {
+			break
+		}
+
+		products = append(products, getProductsResponse.Products...)
+		values.Set("cursor", getProductsResponse.Cursor)
+	}
+
+	return products, nil
 }
 
 func (service *Service) GetProduct(productId string) (*Product, *errortools.Error) {
