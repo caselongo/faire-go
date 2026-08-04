@@ -34,30 +34,30 @@ type Order struct {
 			Type  string `json:"type"`
 			Value string `json:"value"`
 		} `json:"customizations"`
-		Price       *OrderAmount `json:"price"`
-		TesterPrice *OrderAmount `json:"tester_price"`
+		Price       *Amount `json:"price"`
+		TesterPrice *Amount `json:"tester_price"`
 		Discounts   []*struct {
-			Id                   string       `json:"id"`
-			Code                 string       `json:"code"`
-			DiscountType         string       `json:"discount_type"`
-			DiscountAmountCents  *int         `json:"discount_amount_cents"`
-			DiscountPercentage   *int         `json:"discount_percentage"`
-			IncludesFreeShipping *bool        `json:"includes_free_shipping"`
-			DiscountAmount       *OrderAmount `json:"discount_amount"`
+			Id                   string  `json:"id"`
+			Code                 string  `json:"code"`
+			DiscountType         string  `json:"discount_type"`
+			DiscountAmountCents  *int    `json:"discount_amount_cents"`
+			DiscountPercentage   *int    `json:"discount_percentage"`
+			IncludesFreeShipping *bool   `json:"includes_free_shipping"`
+			DiscountAmount       *Amount `json:"discount_amount"`
 		} `json:"discounts"`
 		State string `json:"state"`
 	} `json:"items"`
 	Shipments []*struct {
-		Id               string       `json:"id"`
-		CreatedAt        *time.Time   `json:"created_at"`
-		UpdatedAt        *time.Time   `json:"updated_at"`
-		OrderId          string       `json:"order_id"`
-		MakerCostCents   *int         `json:"maker_cost_cents"`
-		Carrier          string       `json:"carrier"`
-		TrackingCode     string       `json:"tracking_code"`
-		MakerCost        *OrderAmount `json:"maker_cost"`
-		ShippingType     string       `json:"shipping_type"`
-		ShippingLabelUrl string       `json:"shipping_label_url"`
+		Id               string     `json:"id"`
+		CreatedAt        *time.Time `json:"created_at"`
+		UpdatedAt        *time.Time `json:"updated_at"`
+		OrderId          string     `json:"order_id"`
+		MakerCostCents   *int       `json:"maker_cost_cents"`
+		Carrier          string     `json:"carrier"`
+		TrackingCode     string     `json:"tracking_code"`
+		MakerCost        *Amount    `json:"maker_cost"`
+		ShippingType     string     `json:"shipping_type"`
+		ShippingLabelUrl string     `json:"shipping_label_url"`
 	} `json:"shipments"`
 	Address *struct {
 		Id          string `json:"id"`
@@ -76,27 +76,27 @@ type Order struct {
 	} `json:"address"`
 	ShipAfter   *time.Time `json:"ship_after"`
 	PayoutCosts *struct {
-		PayoutFeeCents         *int         `json:"payout_fee_cents"`
-		PayoutFeeBps           *int         `json:"payout_fee_bps"`
-		PayoutFlatFee          *OrderAmount `json:"payout_flat_fee"`
-		CommissionCents        *int         `json:"commission_cents"`
-		CommissionBps          *int         `json:"commission_bps"`
-		CommissionFlatFee      *OrderAmount `json:"commission_flat_fee"`
-		PayoutFee              *OrderAmount `json:"payout_fee"`
-		Commission             *OrderAmount `json:"commission"`
-		TotalPayout            *OrderAmount `json:"total_payout"`
-		PayoutProtectionFee    *OrderAmount `json:"payout_protection_fee"`
-		DamagedAndMissingItems *OrderAmount `json:"damaged_and_missing_items"`
-		NetTax                 *OrderAmount `json:"net_tax"`
-		ShippingSubsidy        *OrderAmount `json:"shipping_subsidy"`
+		PayoutFeeCents         *int    `json:"payout_fee_cents"`
+		PayoutFeeBps           *int    `json:"payout_fee_bps"`
+		PayoutFlatFee          *Amount `json:"payout_flat_fee"`
+		CommissionCents        *int    `json:"commission_cents"`
+		CommissionBps          *int    `json:"commission_bps"`
+		CommissionFlatFee      *Amount `json:"commission_flat_fee"`
+		PayoutFee              *Amount `json:"payout_fee"`
+		Commission             *Amount `json:"commission"`
+		TotalPayout            *Amount `json:"total_payout"`
+		PayoutProtectionFee    *Amount `json:"payout_protection_fee"`
+		DamagedAndMissingItems *Amount `json:"damaged_and_missing_items"`
+		NetTax                 *Amount `json:"net_tax"`
+		ShippingSubsidy        *Amount `json:"shipping_subsidy"`
 		Taxes                  []*struct {
-			Value           *OrderAmount `json:"value"`
-			TaxableItemType string       `json:"taxable_item_type"`
-			TaxType         string       `json:"tax_type"`
-			Effect          string       `json:"effect"`
+			Value           *Amount `json:"value"`
+			TaxableItemType string  `json:"taxable_item_type"`
+			TaxType         string  `json:"tax_type"`
+			Effect          string  `json:"effect"`
 		} `json:"taxes"`
-		SubtotalAfterBrandDiscounts *OrderAmount `json:"subtotal_after_brand_discounts"`
-		TotalBrandDiscounts         *OrderAmount `json:"total_brand_discounts"`
+		SubtotalAfterBrandDiscounts *Amount `json:"subtotal_after_brand_discounts"`
+		TotalBrandDiscounts         *Amount `json:"total_brand_discounts"`
 	} `json:"payout_costs"`
 	PaymentInitiatedAt *time.Time `json:"payment_initiated_at"`
 	OriginalOrderId    string     `json:"original_order_id"`
@@ -108,30 +108,25 @@ type Order struct {
 		LastName  string `json:"last_name"`
 	} `json:"customer"`
 	BrandDiscounts []*struct {
-		Id                   string       `json:"id"`
-		Code                 string       `json:"code"`
-		DiscountType         string       `json:"discount_type"`
-		DiscountAmountCents  *int         `json:"discount_amount_cents"`
-		DiscountPercentage   *int         `json:"discount_percentage"`
-		IncludesFreeShipping *bool        `json:"includes_free_shipping"`
-		DiscountAmount       *OrderAmount `json:"discount_amount"`
+		Id                   string  `json:"id"`
+		Code                 string  `json:"code"`
+		DiscountType         string  `json:"discount_type"`
+		DiscountAmountCents  *int    `json:"discount_amount_cents"`
+		DiscountPercentage   *int    `json:"discount_percentage"`
+		IncludesFreeShipping *bool   `json:"includes_free_shipping"`
+		DiscountAmount       *Amount `json:"discount_amount"`
 	} `json:"brand_discounts"`
-	RequestedShipDate                     string       `json:"requested_ship_date"`
-	ProcessingAt                          string       `json:"processing_at"`
-	IsFreeShipping                        *bool        `json:"is_free_shipping"`
-	FreeShippingReason                    string       `json:"free_shipping_reason"`
-	FaireCoveredShippingCost              *OrderAmount `json:"faire_covered_shipping_cost"`
-	EstimatedPayoutAt                     *time.Time   `json:"estimated_payout_at"`
-	IsFulfilledByFaire                    bool         `json:"is_fulfilled_by_faire"`
-	PurchaseOrderNumber                   string       `json:"purchase_order_number"`
-	Notes                                 string       `json:"notes"`
-	HasPendingRetailerCancellationRequest bool         `json:"has_pending_retailer_cancellation_request"`
-	SalesRepName                          string       `json:"sales_rep_name"`
-}
-
-type OrderAmount struct {
-	AmountMinor int    `json:"amount_minor"`
-	Currency    string `json:"currency"`
+	RequestedShipDate                     string     `json:"requested_ship_date"`
+	ProcessingAt                          string     `json:"processing_at"`
+	IsFreeShipping                        *bool      `json:"is_free_shipping"`
+	FreeShippingReason                    string     `json:"free_shipping_reason"`
+	FaireCoveredShippingCost              *Amount    `json:"faire_covered_shipping_cost"`
+	EstimatedPayoutAt                     *time.Time `json:"estimated_payout_at"`
+	IsFulfilledByFaire                    bool       `json:"is_fulfilled_by_faire"`
+	PurchaseOrderNumber                   string     `json:"purchase_order_number"`
+	Notes                                 string     `json:"notes"`
+	HasPendingRetailerCancellationRequest bool       `json:"has_pending_retailer_cancellation_request"`
+	SalesRepName                          string     `json:"sales_rep_name"`
 }
 
 type GetOrdersResponse struct {
@@ -198,8 +193,6 @@ func (service *Service) GetOrders(options *GetOrdersOptions) ([]*Order, *errorto
 			ResponseModel: &getOrdersResponse,
 		}
 
-		fmt.Println(requestConfig.FullUrl())
-
 		_, _, e := service.httpRequest(&requestConfig)
 		if e != nil {
 			//fmt.Println(*service.errorResponse)
@@ -211,6 +204,10 @@ func (service *Service) GetOrders(options *GetOrdersOptions) ([]*Order, *errorto
 		}
 
 		orders = append(orders, getOrdersResponse.Orders...)
+
+		if getOrdersResponse.Cursor == "" {
+			break
+		}
 		values.Set("cursor", getOrdersResponse.Cursor)
 	}
 

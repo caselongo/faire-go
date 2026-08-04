@@ -181,3 +181,17 @@ func (service *Service) ErrorResponse() *ErrorResponse {
 
 	return service.errorResponse
 }
+
+type Amount struct {
+	AmountMinor int    `json:"amount_minor"`
+	Currency    string `json:"currency"`
+}
+
+type Option struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type GeoConstraint struct {
+	CountryGroup string `json:"country_group"`
+}

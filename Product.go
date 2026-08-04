@@ -56,27 +56,20 @@ type Product struct {
 }
 
 type ProductVariant struct {
-	Id                string         `json:"id,omitempty"`
-	CreatedAt         *time.Time     `json:"created_at,omitempty"`
-	UpdatedAt         *time.Time     `json:"updated_at,omitempty"`
-	ProductId         string         `json:"product_id,omitempty"`
-	Name              string         `json:"name,omitempty"`
-	SaleState         SaleState      `json:"sale_state,omitempty"`
-	LifecycleState    LifecycleState `json:"lifecycle_state,omitempty"`
-	Sku               string         `json:"sku,omitempty"`
-	AvailableQuantity *int           `json:"available_quantity,omitempty"`
-	TariffCode        string         `json:"tariff_code,omitempty"`
-	Measurements      *struct {
-		MassUnit     string  `json:"mass_unit"`
-		Weight       float64 `json:"weight"`
-		DistanceUnit string  `json:"distance_unit"`
-		Length       float64 `json:"length"`
-		Width        float64 `json:"width"`
-		Height       float64 `json:"height"`
-	} `json:"measurements,omitempty"`
-	Gtin             string           `json:"gtin,omitempty"`
-	OrderabilityType OrderabilityType `json:"orderability_type,omitempty"`
-	CaseMeasurements *struct {
+	Id                string               `json:"id,omitempty"`
+	CreatedAt         *time.Time           `json:"created_at,omitempty"`
+	UpdatedAt         *time.Time           `json:"updated_at,omitempty"`
+	ProductId         string               `json:"product_id,omitempty"`
+	Name              string               `json:"name,omitempty"`
+	SaleState         SaleState            `json:"sale_state,omitempty"`
+	LifecycleState    LifecycleState       `json:"lifecycle_state,omitempty"`
+	Sku               string               `json:"sku,omitempty"`
+	AvailableQuantity *int                 `json:"available_quantity,omitempty"`
+	TariffCode        string               `json:"tariff_code,omitempty"`
+	Measurements      *ProductMeasurements `json:"measurements,omitempty"`
+	Gtin              string               `json:"gtin,omitempty"`
+	OrderabilityType  OrderabilityType     `json:"orderability_type,omitempty"`
+	CaseMeasurements  *struct {
 		MassUnit     string  `json:"mass_unit"`
 		Weight       float64 `json:"weight"`
 		DistanceUnit string  `json:"distance_unit"`
@@ -84,25 +77,25 @@ type ProductVariant struct {
 		Width        float64 `json:"width"`
 		Height       float64 `json:"height"`
 	} `json:"case_measurements,omitempty"`
-	Images  []*ProductImage `json:"images,omitempty"`
-	Options []*struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-	} `json:"options,omitempty"`
-	Prices []*struct {
-		GeoConstraint struct {
-			CountryGroup string `json:"country_group"`
-		} `json:"geo_constraint"`
-		WholesalePrice struct {
-			AmountMinor int    `json:"amount_minor"`
-			Currency    string `json:"currency"`
-		} `json:"wholesale_price"`
-		RetailPrice struct {
-			AmountMinor int    `json:"amount_minor"`
-			Currency    string `json:"currency"`
-		} `json:"retail_price"`
-	} `json:"prices,omitempty"`
-	IdempotenceToken string `json:"idempotence_token,omitempty"`
+	Images           []*ProductImage `json:"images,omitempty"`
+	Options          []*Option       `json:"options,omitempty"`
+	Prices           []*ProductPrice `json:"prices,omitempty"`
+	IdempotenceToken string          `json:"idempotence_token,omitempty"`
+}
+
+type ProductMeasurements struct {
+	MassUnit     string   `json:"mass_unit"`
+	Weight       *float64 `json:"weight"`
+	DistanceUnit string   `json:"distance_unit"`
+	Length       *float64 `json:"length"`
+	Width        *float64 `json:"width"`
+	Height       *float64 `json:"height"`
+}
+
+type ProductPrice struct {
+	GeoConstraint  *GeoConstraint `json:"geo_constraint,omitempty"`
+	WholesalePrice *Amount        `json:"wholesale_price,omitempty"`
+	RetailPrice    *Amount        `json:"retail_price,omitempty"`
 }
 
 type ProductVariantOptionSet struct {
@@ -182,8 +175,6 @@ func (service *Service) GetProducts(options *GetProductsOptions) ([]*Product, *e
 			ResponseModel: &getProductsResponse,
 		}
 
-		fmt.Println(requestConfig.FullUrl())
-
 		_, _, e := service.httpRequest(&requestConfig)
 		if e != nil {
 			//fmt.Println(*service.errorResponse)
@@ -195,6 +186,10 @@ func (service *Service) GetProducts(options *GetProductsOptions) ([]*Product, *e
 		}
 
 		products = append(products, getProductsResponse.Products...)
+
+		if getProductsResponse.Cursor == "" {
+			break
+		}
 		values.Set("cursor", getProductsResponse.Cursor)
 	}
 
