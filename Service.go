@@ -59,9 +59,11 @@ func (service *Service) getTokenRequest(r *http.Request) (*http.Request, *errort
 		ApplicationSecret: service.applicationSecret,
 		RedirectUrl:       *service.redirectUrl,
 		Scope: []string{
+			"READ_BRAND",
 			"READ_PRODUCTS",
 			"WRITE_PRODUCTS",
 			"READ_RETAILER",
+			"READ_ORDERS",
 		},
 		GrantType:         "AUTHORIZATION_CODE",
 		AuthorizationCode: authorizationCode,
