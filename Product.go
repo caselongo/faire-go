@@ -1,9 +1,11 @@
 package faire_go
 
 import (
+	"encoding/base64"
 	"fmt"
 	errortools "github.com/leapforce-libraries/go_errortools"
 	go_http "github.com/leapforce-libraries/go_http"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -70,12 +72,12 @@ type ProductVariant struct {
 	Gtin              string               `json:"gtin,omitempty"`
 	OrderabilityType  OrderabilityType     `json:"orderability_type,omitempty"`
 	CaseMeasurements  *struct {
-		MassUnit     string  `json:"mass_unit"`
-		Weight       float64 `json:"weight"`
-		DistanceUnit string  `json:"distance_unit"`
-		Length       float64 `json:"length"`
-		Width        float64 `json:"width"`
-		Height       float64 `json:"height"`
+		MassUnit     string   `json:"mass_unit,omitempty"`
+		Weight       *float64 `json:"weight,omitempty"`
+		DistanceUnit string   `json:"distance_unit,omitempty"`
+		Length       *float64 `json:"length,omitempty"`
+		Width        *float64 `json:"width,omitempty"`
+		Height       *float64 `json:"height,omitempty"`
 	} `json:"case_measurements,omitempty"`
 	Images           []*ProductImage `json:"images,omitempty"`
 	Options          []*Option       `json:"options,omitempty"`
@@ -84,12 +86,12 @@ type ProductVariant struct {
 }
 
 type ProductMeasurements struct {
-	MassUnit     string   `json:"mass_unit"`
-	Weight       *float64 `json:"weight"`
-	DistanceUnit string   `json:"distance_unit"`
-	Length       *float64 `json:"length"`
-	Width        *float64 `json:"width"`
-	Height       *float64 `json:"height"`
+	MassUnit     string   `json:"mass_unit,omitempty"`
+	Weight       *float64 `json:"weight,omitempty"`
+	DistanceUnit string   `json:"distance_unit,omitempty"`
+	Length       *float64 `json:"length,omitempty"`
+	Width        *float64 `json:"width,omitempty"`
+	Height       *float64 `json:"height,omitempty"`
 }
 
 type ProductPrice struct {
@@ -104,13 +106,13 @@ type ProductVariantOptionSet struct {
 }
 
 type ProductImage struct {
-	Id          string   `json:"id"`
-	Width       int      `json:"width"`
-	Height      int      `json:"height"`
-	Sequence    int      `json:"sequence"`
+	Id          string   `json:"id,omitempty"`
+	Width       *int     `json:"width,omitempty"`
+	Height      *int     `json:"height,omitempty"`
+	Sequence    *int     `json:"sequence,omitempty"`
 	Url         string   `json:"url"`
-	OriginalUrl string   `json:"original_url"`
-	Tags        []string `json:"tags"`
+	OriginalUrl string   `json:"original_url,omitempty"`
+	Tags        []string `json:"tags,omitempty"`
 }
 
 type ProductAttribute struct {
@@ -235,4 +237,55 @@ func (service *Service) CreateProduct(product *Product) (*Product, *errortools.E
 	}
 
 	return &productCreated, nil
+}
+
+type UploadImageResponse struct {
+	Url string `json:"url"`
+}
+
+func (service *Service) UploadImage(url string) (string, *errortools.Error) {
+	// Download image
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", errortools.ErrorMessage(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", errortools.ErrorMessagef("unexpected status: %s", resp.Status)
+	}
+
+	// Read image bytes
+	imageBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errortools.ErrorMessage(err)
+	}
+
+	// Convert to Base64
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
+
+	// Create API request
+	uploadImageResponse := UploadImageResponse{}
+	requestConfig := go_http.RequestConfig{
+		Method: http.MethodPost,
+		Url:    service.url("products/upload-image"),
+		BodyModel: struct {
+			Attachment string `json:"attachment"`
+		}{
+			Attachment: imageBase64,
+		},
+		ResponseModel: &uploadImageResponse,
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		//fmt.Println(*service.errorResponse)
+		return "", e
+	}
+
+	return uploadImageResponse.Url, nil
 }
