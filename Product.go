@@ -239,6 +239,80 @@ func (service *Service) CreateProduct(product *Product) (*Product, *errortools.E
 	return &productCreated, nil
 }
 
+func (service *Service) UpdateProduct(productId string, product *Product) (*Product, *errortools.Error) {
+	if product == nil {
+		return nil, errortools.ErrorMessage("product must not be nil")
+	}
+	if productId == "" {
+		return nil, errortools.ErrorMessage("productId must not be nil")
+	}
+
+	product.Id = ""
+
+	var productUpdated Product
+
+	requestConfig := go_http.RequestConfig{
+		Method:        http.MethodPatch,
+		Url:           service.url(fmt.Sprintf("products/%s", productId)),
+		BodyModel:     product,
+		ResponseModel: &productUpdated,
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		//fmt.Println(*service.errorResponse)
+		return nil, e
+	}
+
+	return &productUpdated, nil
+}
+
+func (service *Service) UpdateProductVariant(productId string, productVariantId string, productVariant *ProductVariant) (*ProductVariant, *errortools.Error) {
+	if productVariant == nil {
+		return nil, errortools.ErrorMessage("productVariant must not be nil")
+	}
+	if productId == "" {
+		return nil, errortools.ErrorMessage("productId must not be nil")
+	}
+	if productVariantId == "" {
+		return nil, errortools.ErrorMessage("productVariantId must not be nil")
+	}
+
+	productVariant.Id = ""
+	productVariant.ProductId = ""
+
+	var productVariantUpdated ProductVariant
+
+	requestConfig := go_http.RequestConfig{
+		Method:        http.MethodPatch,
+		Url:           service.url(fmt.Sprintf("products/%s/variants/%s", productId, productVariantId)),
+		BodyModel:     productVariant,
+		ResponseModel: &productVariantUpdated,
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		//fmt.Println(*service.errorResponse)
+		return nil, e
+	}
+
+	return &productVariantUpdated, nil
+}
+
+func (service *Service) DeleteProduct(productId string) *errortools.Error {
+	requestConfig := go_http.RequestConfig{
+		Method: http.MethodDelete,
+		Url:    service.url(fmt.Sprintf("products/%s", productId)),
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
 type UploadImageResponse struct {
 	Url string `json:"url"`
 }
