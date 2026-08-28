@@ -183,8 +183,8 @@ func (service *Service) ErrorResponse() *ErrorResponse {
 }
 
 type Amount struct {
-	AmountMinor float64 `json:"amount_minor"`
-	Currency    string  `json:"currency"`
+	AmountMinor int    `json:"amount_minor"`
+	Currency    string `json:"currency"`
 }
 
 type Option struct {
