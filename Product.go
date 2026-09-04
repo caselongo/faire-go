@@ -267,6 +267,49 @@ func (service *Service) UpdateProduct(productId string, product *Product) (*Prod
 	return &productUpdated, nil
 }
 
+func (service *Service) DeleteProduct(productId string) *errortools.Error {
+	requestConfig := go_http.RequestConfig{
+		Method: http.MethodDelete,
+		Url:    service.url(fmt.Sprintf("products/%s", productId)),
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		return e
+	}
+
+	return nil
+}
+
+func (service *Service) CreateProductVariant(productId string, productVariant *ProductVariant) (*ProductVariant, *errortools.Error) {
+	if productVariant == nil {
+		return nil, errortools.ErrorMessage("productVariant must not be nil")
+	}
+	if productId == "" {
+		return nil, errortools.ErrorMessage("productId must not be nil")
+	}
+
+	productVariant.Id = ""
+	productVariant.ProductId = ""
+
+	var productVariantCreated ProductVariant
+
+	requestConfig := go_http.RequestConfig{
+		Method:        http.MethodPost,
+		Url:           service.url(fmt.Sprintf("products/%s/variants", productId)),
+		BodyModel:     productVariant,
+		ResponseModel: &productVariantCreated,
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		//fmt.Println(*service.errorResponse)
+		return nil, e
+	}
+
+	return &productVariantCreated, nil
+}
+
 func (service *Service) UpdateProductVariant(productId string, productVariantId string, productVariant *ProductVariant) (*ProductVariant, *errortools.Error) {
 	if productVariant == nil {
 		return nil, errortools.ErrorMessage("productVariant must not be nil")
@@ -299,18 +342,21 @@ func (service *Service) UpdateProductVariant(productId string, productVariantId 
 	return &productVariantUpdated, nil
 }
 
-func (service *Service) DeleteProduct(productId string) *errortools.Error {
+func (service *Service) DeleteProductVariant(productId string, productVariantId string) *errortools.Error {
+	if productId == "" {
+		return errortools.ErrorMessage("productId must not be nil")
+	}
+	if productVariantId == "" {
+		return errortools.ErrorMessage("productVariantId must not be nil")
+	}
+
 	requestConfig := go_http.RequestConfig{
 		Method: http.MethodDelete,
-		Url:    service.url(fmt.Sprintf("products/%s", productId)),
+		Url:    service.url(fmt.Sprintf("products/%s/variants/%s", productId, productVariantId)),
 	}
 
 	_, _, e := service.httpRequest(&requestConfig)
-	if e != nil {
-		return e
-	}
-
-	return nil
+	return e
 }
 
 type UploadImageResponse struct {
@@ -362,4 +408,36 @@ func (service *Service) UploadImage(url string) (string, *errortools.Error) {
 	}
 
 	return uploadImageResponse.Url, nil
+}
+
+type UpdateProductVariantOptionSetsResponse struct {
+	VariantOptionSets []*ProductVariantOptionSet `json:"variant_option_sets"`
+}
+
+func (service *Service) UpdateProductVariantOptionSets(productId string, productVariantOptionSets []*ProductVariantOptionSet) ([]*ProductVariantOptionSet, *errortools.Error) {
+	if productVariantOptionSets == nil {
+		return nil, errortools.ErrorMessage("productVariant must not be nil")
+	}
+	if productId == "" {
+		return nil, errortools.ErrorMessage("productId must not be nil")
+	}
+
+	var res UpdateProductVariantOptionSetsResponse
+
+	requestConfig := go_http.RequestConfig{
+		Method: http.MethodPatch,
+		Url:    service.url(fmt.Sprintf("products/%s/variant-option-sets", productId)),
+		BodyModel: struct {
+			VariantOptionSets []*ProductVariantOptionSet `json:"variant_option_sets"`
+		}{productVariantOptionSets},
+		ResponseModel: &res,
+	}
+
+	_, _, e := service.httpRequest(&requestConfig)
+	if e != nil {
+		//fmt.Println(*service.errorResponse)
+		return nil, e
+	}
+
+	return res.VariantOptionSets, nil
 }
